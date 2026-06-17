@@ -7,6 +7,8 @@ arch:
 startup: application
 boot: auto
 init: false
+build_from:
+  amd64: ghcr.io/home-assistant/amd64-base:latest
 options:
   max_price: 1500
   city: Valencia
