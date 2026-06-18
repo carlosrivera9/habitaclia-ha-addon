@@ -1,23 +1,18 @@
-name: Idealista Apartment Bot
-version: "1.1.3"
-slug: idealista_bot
-description: Apartment finder for Valencia using Idealista
+name: "Idealista Apartment Bot"
+version: "1.1.4"
+slug: "idealista_bot"
+description: "Apartment finder for Valencia using Idealista"
+url: "https://github.com/your-repo/idealista_bot"
+
 arch:
   - amd64
+
 startup: application
 boot: auto
-init: false
-options:
-  city: "valencia-valencia"
-  max_price: 1000
-  pets: true
-  interval_minutes: 30
-  mqtt_user: "idealista_bot"
-  mqtt_password: "idealista123"
-schema:
-  city: str
-  max_price: int
-  pets: bool
-  interval_minutes: int
-  mqtt_user: str
-  mqtt_password: str
+
+options: {}
+
+schema: {}
+
+build_from:
+  amd64: ghcr.io/home-assistant/amd64-base-python:latest
