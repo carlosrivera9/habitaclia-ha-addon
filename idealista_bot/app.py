@@ -6,6 +6,10 @@ import paho.mqtt.publish as publish
 from bs4 import BeautifulSoup
 
 MQTT_HOST = "core-mosquitto"
+MQTT_PORT = 1883
+MQTT_USER = None  # will be loaded from options
+MQTT_PASS = None
+
 OPTIONS_FILE = "/data/options.json"
 SEEN_IDS_FILE = "/data/seen_ids.json"
 
@@ -102,8 +106,25 @@ def scrape_listings(url):
 
     return listings
 
+def mqtt_publish(topic, payload):
+    try:
+        publish.single(
+            topic,
+            json.dumps(payload),
+            hostname=MQTT_HOST,
+            port=MQTT_PORT,
+            auth={"username": MQTT_USER, "password": MQTT_PASS}
+        )
+    except Exception as e:
+        print(f"MQTT error: {e}")
+
 def main():
     options = load_options()
+
+    global MQTT_USER, MQTT_PASS
+    MQTT_USER = options.get("mqtt_user", "idealista_bot")
+    MQTT_PASS = options.get("mqtt_password", "idealista123")
+    
     city = options.get("city", "valencia-valencia")
     max_price = options.get("max_price", 1500)
     pets = options.get("pets", False)
