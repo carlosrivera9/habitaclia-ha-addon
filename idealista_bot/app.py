@@ -68,30 +68,23 @@ def build_url(city_slug, max_price, pets):
 
 def scrape_listings(url):
 
-    print("Opening browser...")
+    print("Downloading page...")
 
-    with sync_playwright() as p:
+    import requests
 
-        browser = p.chromium.launch(
-            headless=True
-        )
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS)
+    }
 
-        page = browser.new_page(
-            user_agent=random.choice(USER_AGENTS),
-            locale="es-ES"
-        )
+    response = requests.get(
+        url,
+        headers=headers,
+        timeout=30
+    )
 
-        page.goto(
-            url,
-            wait_until="networkidle",
-            timeout=60000
-        )
+    response.raise_for_status()
 
-        time.sleep(5)
-
-        html = page.content()
-
-        browser.close()
+    html = response.text
 
 
     soup = BeautifulSoup(html, "html.parser")
