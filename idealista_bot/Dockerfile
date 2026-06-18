@@ -11,4 +11,6 @@ RUN playwright install --with-deps chromium
 
 COPY app.py .
 
+ENV PATH="/venv/bin:$PATH"
+
 CMD ["python", "app.py"]
