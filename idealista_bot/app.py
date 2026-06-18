@@ -67,8 +67,12 @@ def scrape_listings(url):
         pass
 
     response = session.get(url, headers=headers, timeout=15)
+    
+    print(f"Status code: {response.status_code}")
+    print(response.text[:500])
+    
     response.raise_for_status()
-
+    
     soup = BeautifulSoup(response.text, "html.parser")
     articles = soup.find_all("article", class_="item")
 
