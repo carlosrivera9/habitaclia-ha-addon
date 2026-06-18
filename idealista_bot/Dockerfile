@@ -1,15 +1,14 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
-RUN apk add --no-cache chromium chromium-chromedriver python3 py3-pip
-
 WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip3 install --break-system-packages -r requirements.txt
+RUN ls -la /app
+RUN cat requirements.txt
 
-RUN playwright install chromium
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
