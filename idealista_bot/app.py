@@ -3,7 +3,6 @@ import json
 import random
 import paho.mqtt.publish as publish
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
 
 
 MQTT_HOST = "core-mosquitto"
