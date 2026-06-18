@@ -4,6 +4,7 @@ import random
 import paho.mqtt.publish as publish
 from bs4 import BeautifulSoup
 
+raise Exception("APP_PY_VERSION_1110_TEST")
 
 MQTT_HOST = "core-mosquitto"
 MQTT_PORT = 1883
