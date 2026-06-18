@@ -11,4 +11,6 @@ RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
 
 COPY app.py .
 
+RUN head -20 /app.py
+
 CMD ["python3", "app.py"]
