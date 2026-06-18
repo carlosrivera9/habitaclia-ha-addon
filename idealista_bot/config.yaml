@@ -7,7 +7,6 @@ arch:
 startup: application
 boot: auto
 init: false
-image: "ghcr.io/home-assistant/{arch}-base:latest"
 options:
   city: "valencia-valencia"
   max_price: 1500
