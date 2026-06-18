@@ -1,19 +1,14 @@
-name: Idealista Apartment Bot
-version: "1.1.0"
-slug: idealista_bot
-description: Apartment finder for Valencia using Idealista
-arch:
-  - amd64
-startup: application
-boot: auto
-init: false
 options:
   city: "valencia-valencia"
-  max_price: 1500
-  pets: false
+  max_price: 1000
+  pets: true
   interval_minutes: 30
+  mqtt_user: "idealista_bot"
+  mqtt_password: "idealista123"
 schema:
   city: str
   max_price: int
   pets: bool
   interval_minutes: int
+  mqtt_user: str
+  mqtt_password: str
