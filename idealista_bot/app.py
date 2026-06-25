@@ -53,25 +53,15 @@ def build_url(city_slug, max_price, pets):
     return base + params
 
 def scrape_listings(url):
-    headers = {
-        "User-Agent": random.choice(USER_AGENTS),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "es-ES,es;q=0.9,en;q=0.8",
-        "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
-        "Referer": "https://www.google.es/",
-        "Cookie": 'userUUID=5ffdf959-3086-413d-8b96-e608f12b68d1; SESSION=73609f225c1dae83~a7eb45c1-2eaa-40e1-8c78-54dcabe466fa; lang=es; PARAGLIDE_LOCALE=es; datadome=~d7MhDmHcGKXBuDLntxaMIO38w87haT4ZxjEjeUldsNhsICcaDMqdpF4RM4cdnJAFfK30CDwjl1BgYh1s7l_TWOIsySMMMnxrnyV9OlHpzk5vM_uqFc8QJwwE~GwfVQA',
-    }
-    session = requests.Session()
-    session.headers.update(headers)
-    try:
-        session.get("https://www.idealista.com/", timeout=15)
-        time.sleep(random.uniform(2, 5))
-    except Exception:
-        pass
-    response = session.get(url, timeout=15)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
+        page = browser.new_page()
+        page.goto(url, timeout=30000)
+        page.wait_for_timeout(3000)
+        content = page.content()
+        browser.close()
+    soup = BeautifulSoup(content, "html.parser")
     articles = soup.find_all("article", class_="item")
     listings = []
     for article in articles:
