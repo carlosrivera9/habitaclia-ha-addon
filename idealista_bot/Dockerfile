@@ -4,3 +4,4 @@ WORKDIR /app
 RUN pip3 install --break-system-packages paho-mqtt requests beautifulsoup4
 COPY app.py .
 COPY rootfs /
+RUN chmod +x /etc/services.d/idealista/run
