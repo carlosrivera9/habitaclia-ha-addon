@@ -54,40 +54,21 @@ def build_url(city_slug, max_price, pets):
 
 def scrape_listings(url):
     from playwright.sync_api import sync_playwright
+    content = ""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
         page = browser.new_page()
-        page.goto(url, timeout=30000)
-        page.wait_for_timeout(3000)
-        print(content[:2000], flush=True)
-        content = page.content()
-        browser.close()
+        try:
+            page.goto(url, timeout=30000)
+            page.wait_for_timeout(3000)
+            content = page.content()
+            print(content[:2000], flush=True)
+        except Exception as e:
+            print(f"Browser error: {e}", flush=True)
+        finally:
+            browser.close()
     soup = BeautifulSoup(content, "html.parser")
     articles = soup.find_all("article", class_="item")
-    listings = []
-    for article in articles:
-        try:
-            link_tag = article.find("a", class_="item-link")
-            if not link_tag:
-                continue
-            href = link_tag.get("href", "")
-            title = link_tag.get("title", "").strip()
-            price_tag = article.find("span", class_="item-price")
-            price = price_tag.text.strip() if price_tag else "N/A"
-            details = [d.text.strip() for d in article.find_all("span", class_="item-detail")]
-            full_url = f"https://www.idealista.com{href}" if href else ""
-            listing_id = href.strip("/").split("/")[-1] if href else title
-            listings.append({
-                "id": listing_id,
-                "title": title,
-                "price": price,
-                "details": details,
-                "url": full_url,
-            })
-        except Exception as e:
-            print(f"Error parsing listing: {e}")
-    print(f"Listings found: {len(listings)}")
-    return listings
 
 def main():
     global MQTT_USER, MQTT_PASS
