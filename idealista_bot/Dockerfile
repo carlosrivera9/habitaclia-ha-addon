@@ -1,7 +1,5 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM
+FROM python:3.11-alpine
 WORKDIR /app
-RUN pip3 install --break-system-packages paho-mqtt requests beautifulsoup4
+RUN pip3 install --no-cache-dir paho-mqtt requests beautifulsoup4
 COPY app.py .
-COPY rootfs /
-RUN chmod +x /etc/services.d/idealista/run
+CMD ["python3", "-u", "app.py"]
