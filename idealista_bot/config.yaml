@@ -1,5 +1,5 @@
 name: Idealista Apartment Bot
-version: "1.0.1"
+version: "1.0.2"
 slug: idealista_searcher
 description: Apartment finder for Valencia using Idealista
 arch:
