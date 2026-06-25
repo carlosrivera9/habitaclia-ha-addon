@@ -1,2 +1,2 @@
 build_from:
-  amd64: python:3.11-alpine
+  amd64: python:3.11-slim
