@@ -60,13 +60,7 @@ def scrape_listings(url):
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
         "Referer": "https://www.google.es/",
-        "DNT": "1",
-        "Upgrade-Insecure-Requests": "1",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "cross-site",
-        "Sec-Fetch-User": "?1",
-        "Cache-Control": "max-age=0",
+        "Cookie": "userUUID=5ffdf959-3086-413d-8b96-e608f12b68d1; SESSION=73609f225c1dae83~a7eb45c1-2eaa-40e1-8c78-54dcabe466fa; lang=es; PARAGLIDE_LOCALE=es;",
     }
     session = requests.Session()
     session.headers.update(headers)
