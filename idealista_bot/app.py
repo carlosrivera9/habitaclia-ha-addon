@@ -106,7 +106,9 @@ def scrape_listings(url):
 
 def main():
     global MQTT_USER, MQTT_PASS
+    print("=== Idealista Bot Starting ===", flush=True)
     options = load_options()
+    print(f"Options loaded: {options}", flush=True)
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
     city = options.get("city", "valencia-valencia")
