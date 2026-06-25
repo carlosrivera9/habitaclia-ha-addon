@@ -1,8 +1,6 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 WORKDIR /app
-RUN apk add --no-cache python3 py3-pip
+RUN pip3 install --no-cache-dir paho-mqtt requests beautifulsoup4
 COPY app.py .
-COPY run /etc/services.d/idealista_searcher/run
-RUN chmod +x /etc/services.d/idealista_searcher/run
-RUN pip3 install --break-system-packages paho-mqtt requests beautifulsoup4
+CMD ["python3", "-u", "app.py"]
