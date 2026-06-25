@@ -115,6 +115,21 @@ def main():
     max_price = options.get("max_price", 1000)
     pets = options.get("pets", True)
 
+    seen_ids = load_seen_ids()
+    url = build_url(city, max_price, pets)
+    print(f"Scraping: {url}", flush=True)
+    listings = scrape_listings(url)
+
+    new_listings = [l for l in listings if l["id"] not in seen_ids]
+    print(f"New listings: {len(new_listings)}", flush=True)
+
+    for listing in new_listings:
+        mqtt_publish("idealista/listing", listing)
+        seen_ids.add(listing["id"])
+
+    save_seen_ids(seen_ids)
+    print("Done.", flush=True)
+
 if __name__ == "__main__":
     while True:
         try:
