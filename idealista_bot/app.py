@@ -59,6 +59,7 @@ def scrape_listings(url):
         page = browser.new_page()
         page.goto(url, timeout=30000)
         page.wait_for_timeout(3000)
+        print(content[:2000], flush=True)
         content = page.content()
         browser.close()
     soup = BeautifulSoup(content, "html.parser")
