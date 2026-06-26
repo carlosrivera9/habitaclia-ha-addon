@@ -74,28 +74,23 @@ def scrape_listings(max_price):
 
         for card in cards:
             try:
-                # ID
                 listing_id = card.get("list-item", "")
                 if not listing_id:
                     continue
 
-                # Title and URL
                 link_tag = card.select_one("a.propertyCard__description--title")
                 if not link_tag:
                     continue
                 title = link_tag.get_text(strip=True)
                 url_full = link_tag.get("href", "")
 
-                # Price
                 price_tag = card.select_one("span.propertyCard__price--value")
                 price_text = price_tag.get_text(strip=True) if price_tag else "N/A"
                 price_num = int(re.sub(r'[^\d]', '', price_text)) if price_text != "N/A" else 99999
 
-                # Location
                 location_tag = card.select_one("div.propertyCard__location p")
                 location = location_tag.get_text(strip=True) if location_tag else "N/A"
 
-                # Details
                 details = [li.get_text(strip=True) for li in card.select("ul.propertyCard__details li")]
                 details_str = " | ".join(details) if details else "N/A"
 
@@ -145,6 +140,9 @@ def main():
     for listing in new_listings:
         mqtt_publish("enalquiler/listing", listing)
         seen_ids.add(listing["id"])
+
+    # Always publish full summary every run
+    mqtt_publish("enalquiler/summary", {"listings": listings, "count": len(listings)})
 
     save_seen_ids(seen_ids)
     print("Done.", flush=True)
