@@ -61,13 +61,13 @@ def scrape_listings(max_price):
         "Referer": "https://www.enalquiler.com/",
     }
 
-    for page in range(1, 6):  # up to 5 pages
+    for page in range(1, 6):
         url = build_url(page)
         print(f"Fetching: {url}", flush=True)
 
         try:
             time.sleep(random.uniform(2, 4))
-            response = requests.get(url, headers=headers, timeout=20, encoding='latin-1')
+            response = requests.get(url, headers=headers, timeout=20)
             response.encoding = 'latin-1'
             print(f"Status: {response.status_code}", flush=True)
 
@@ -83,7 +83,6 @@ def scrape_listings(max_price):
 
             for item in items:
                 try:
-                    # ID from link
                     link_tag = item.select_one("a[href*='alquiler_piso']")
                     if not link_tag:
                         continue
@@ -91,20 +90,16 @@ def scrape_listings(max_price):
                     listing_id = href.split("_")[-1].replace(".html", "")
                     url_full = "https://www.enalquiler.com" + href if href.startswith("/") else href
 
-                    # Title
                     title = link_tag.get_text(strip=True)
 
-                    # Price
                     price_tag = item.select_one(".ad-price, .precio, [class*='price']")
                     price_text = price_tag.get_text(strip=True) if price_tag else "N/A"
 
-                    # Extract numeric price for filtering
                     price_num = int(''.join(filter(str.isdigit, price_text))) if price_text != "N/A" else 99999
 
                     if price_num > max_price:
                         continue
 
-                    # Details (m2, rooms, bathrooms)
                     details = [d.get_text(strip=True) for d in item.select("li")]
                     details_str = " | ".join(details[:3]) if details else "N/A"
 
