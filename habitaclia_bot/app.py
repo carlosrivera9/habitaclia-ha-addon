@@ -60,60 +60,21 @@ def scrape_listings(max_price):
     print(f"Fetching: {url}", flush=True)
 
     try:
-        time.sleep(random.uniform(2, 4))
         response = requests.get(url, headers=headers, timeout=20)
         response.encoding = 'latin-1'
         print(f"Status: {response.status_code}", flush=True)
 
-        if response.status_code != 200:
-            print("Non-200 response", flush=True)
-            return listings
-
         soup = BeautifulSoup(response.text, "html.parser")
         links = soup.find_all("a", href=re.compile(r"alquiler_piso_valencia"))
 
-        seen_hrefs = set()
-        for link in links:
-            href = link.get("href", "")
-            if href in seen_hrefs:
-                continue
-            seen_hrefs.add(href)
-
-            try:
-                listing_id = href.split("_")[-1].replace(".html", "")
-                url_full = "https://www.enalquiler.com" + href if href.startswith("/") else href
-                title = link.get_text(strip=True)
-                if not title:
-                    continue
-
-                parent = link.find_parent("li")
-                price_text = "N/A"
-                price_num = 99999
-                if parent:
-                    text = parent.get_text(" ", strip=True)
-                    price_match = re.search(r'(\d[\d\.]*)\s*€', text)
-                    if price_match:
-                        price_num = int(price_match.group(1).replace(".", ""))
-                        price_text = f"{price_num} €/mes"
-
-                print(f"  Listing: {title[:50]} | {price_text}", flush=True)
-
-                if price_num > max_price:
-                    print(f"  Skipping (price {price_num} > {max_price})", flush=True)
-                    continue
-
-                listings.append({
-                    "id": listing_id,
-                    "title": title,
-                    "price": price_text,
-                    "url": url_full,
-                })
-
-            except Exception as e:
-                print(f"Error parsing item: {e}", flush=True)
-                continue
-
-        print(f"Found {len(seen_hrefs)} total listings, {len(listings)} under {max_price}€", flush=True)
+        # Debug: print raw HTML of first listing's parent
+        if links:
+            first = links[0]
+            parent = first.find_parent("li")
+            if parent:
+                print(f"DEBUG parent li HTML:\n{parent}", flush=True)
+            else:
+                print(f"DEBUG no parent li, printing grandparent:\n{first.parent}", flush=True)
 
     except Exception as e:
         print(f"Request error: {e}", flush=True)
@@ -123,27 +84,11 @@ def scrape_listings(max_price):
 def main():
     global MQTT_USER, MQTT_PASS
     print("=== Enalquiler Bot Starting ===", flush=True)
-
     options = load_options()
-    print(f"Options loaded: {options}", flush=True)
-
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
     max_price = options.get("max_price", 1000)
-
-    seen_ids = load_seen_ids()
-    listings = scrape_listings(max_price)
-    print(f"Total listings found: {len(listings)}", flush=True)
-
-    new_listings = [l for l in listings if l["id"] not in seen_ids]
-    print(f"New listings: {len(new_listings)}", flush=True)
-
-    for listing in new_listings:
-        mqtt_publish("enalquiler/listing", listing)
-        seen_ids.add(listing["id"])
-
-    save_seen_ids(seen_ids)
-    print("Done.", flush=True)
+    scrape_listings(max_price)
 
 if __name__ == "__main__":
     while True:
