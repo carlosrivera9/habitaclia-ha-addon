@@ -1,6 +1,7 @@
 import time
 import json
 import random
+import re
 import requests
 from bs4 import BeautifulSoup
 import paho.mqtt.publish as publish
@@ -47,10 +48,9 @@ def mqtt_publish(topic, payload):
         print(f"MQTT error: {e}")
 
 def build_url(page=1):
-    base = "https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48.html"
-    if page > 1:
-        base = f"https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48-{page}.html"
-    return base
+    if page == 1:
+        return "https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48.html"
+    return f"https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48-{page}.html"
 
 def scrape_listings(max_price):
     listings = []
@@ -75,39 +75,46 @@ def scrape_listings(max_price):
                 break
 
             soup = BeautifulSoup(response.text, "html.parser")
-            items = soup.select("li.ad-preview")
 
-            if not items:
+            # Find all listing links
+            links = soup.find_all("a", href=re.compile(r"alquiler_piso_valencia"))
+            if not links:
                 print(f"No listings on page {page}, stopping", flush=True)
                 break
 
-            for item in items:
+            seen_on_page = set()
+            for link in links:
+                href = link.get("href", "")
+                if href in seen_on_page:
+                    continue
+                seen_on_page.add(href)
+
                 try:
-                    link_tag = item.select_one("a[href*='alquiler_piso']")
-                    if not link_tag:
-                        continue
-                    href = link_tag["href"]
+                    # ID from URL
                     listing_id = href.split("_")[-1].replace(".html", "")
                     url_full = "https://www.enalquiler.com" + href if href.startswith("/") else href
+                    title = link.get_text(strip=True)
+                    if not title:
+                        continue
 
-                    title = link_tag.get_text(strip=True)
-
-                    price_tag = item.select_one(".ad-price, .precio, [class*='price']")
-                    price_text = price_tag.get_text(strip=True) if price_tag else "N/A"
-
-                    price_num = int(''.join(filter(str.isdigit, price_text))) if price_text != "N/A" else 99999
+                    # Walk up to parent li to find price
+                    parent = link.find_parent("li")
+                    price_text = "N/A"
+                    price_num = 99999
+                    if parent:
+                        text = parent.get_text(" ", strip=True)
+                        price_match = re.search(r'(\d[\d\.]*)[\s]*€', text)
+                        if price_match:
+                            price_num = int(price_match.group(1).replace(".", ""))
+                            price_text = f"{price_num} €/mes"
 
                     if price_num > max_price:
                         continue
-
-                    details = [d.get_text(strip=True) for d in item.select("li")]
-                    details_str = " | ".join(details[:3]) if details else "N/A"
 
                     listings.append({
                         "id": listing_id,
                         "title": title,
                         "price": price_text,
-                        "details": details_str,
                         "url": url_full,
                     })
 
@@ -115,7 +122,7 @@ def scrape_listings(max_price):
                     print(f"Error parsing item: {e}", flush=True)
                     continue
 
-            print(f"Page {page}: found {len(items)} items", flush=True)
+            print(f"Page {page}: found {len(seen_on_page)} listings", flush=True)
 
         except Exception as e:
             print(f"Request error on page {page}: {e}", flush=True)
