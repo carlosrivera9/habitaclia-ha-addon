@@ -1,7 +1,7 @@
-name: Idealista Apartment Bot
-version: "1.2.0"
-slug: idealista_searcher2
-description: Apartment finder for Valencia using Idealista
+name: Habitaclia Apartment Bot
+version: "1.0.0"
+slug: habitaclia_searcher
+description: Apartment finder for Valencia using Habitaclia
 arch:
   - amd64
 startup: application
@@ -10,7 +10,7 @@ host_network: true
 options:
   mqtt_user: "idealista_bot"
   mqtt_password: "idealista123"
-  city: "valencia-valencia"
+  city: "valencia-en-valencia"
   max_price: 1000
   pets: true
 schema:
