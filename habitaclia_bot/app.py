@@ -39,6 +39,7 @@ def mqtt_publish(topic, payload):
             json.dumps(payload),
             hostname=MQTT_HOST,
             port=MQTT_PORT,
+            retain=True,
             auth={"username": MQTT_USER, "password": MQTT_PASS}
         )
         print(f"MQTT published to {topic}")
@@ -77,6 +78,10 @@ def scrape_listings(city_slug, max_price, pets):
                 break
 
             soup = BeautifulSoup(response.text, "html.parser")
+
+            # Debug: print first 2000 chars of HTML
+            print(f"DEBUG HTML snippet:\n{response.text[:2000]}", flush=True)
+
             articles = soup.find_all("article")
 
             if not articles:
@@ -123,7 +128,7 @@ def main():
 
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
-    city_slug = options.get("city", "valencia-en-valencia")
+    city_slug = options.get("city", "valencia-52")
     max_price = options.get("max_price", 1000)
     pets = options.get("pets", True)
 
@@ -148,4 +153,3 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Error: {e}", flush=True)
         time.sleep(1800)
-EOF
