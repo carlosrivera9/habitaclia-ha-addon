@@ -47,11 +47,6 @@ def mqtt_publish(topic, payload):
     except Exception as e:
         print(f"MQTT error: {e}")
 
-def build_url(page=1):
-    if page == 1:
-        return "https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48.html"
-    return f"https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48-{page}.html"
-
 def scrape_listings(max_price):
     listings = []
     headers = {
@@ -61,72 +56,67 @@ def scrape_listings(max_price):
         "Referer": "https://www.enalquiler.com/",
     }
 
-    for page in range(1, 6):
-        url = build_url(page)
-        print(f"Fetching: {url}", flush=True)
+    url = "https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48.html"
+    print(f"Fetching: {url}", flush=True)
 
-        try:
-            time.sleep(random.uniform(2, 4))
-            response = requests.get(url, headers=headers, timeout=20)
-            response.encoding = 'latin-1'
-            print(f"Status: {response.status_code}", flush=True)
+    try:
+        time.sleep(random.uniform(2, 4))
+        response = requests.get(url, headers=headers, timeout=20)
+        response.encoding = 'latin-1'
+        print(f"Status: {response.status_code}", flush=True)
 
-            if response.status_code != 200:
-                break
+        if response.status_code != 200:
+            print("Non-200 response", flush=True)
+            return listings
 
-            soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "html.parser")
+        links = soup.find_all("a", href=re.compile(r"alquiler_piso_valencia"))
 
-            # Find all listing links
-            links = soup.find_all("a", href=re.compile(r"alquiler_piso_valencia"))
-            if not links:
-                print(f"No listings on page {page}, stopping", flush=True)
-                break
+        seen_hrefs = set()
+        for link in links:
+            href = link.get("href", "")
+            if href in seen_hrefs:
+                continue
+            seen_hrefs.add(href)
 
-            seen_on_page = set()
-            for link in links:
-                href = link.get("href", "")
-                if href in seen_on_page:
-                    continue
-                seen_on_page.add(href)
-
-                try:
-                    # ID from URL
-                    listing_id = href.split("_")[-1].replace(".html", "")
-                    url_full = "https://www.enalquiler.com" + href if href.startswith("/") else href
-                    title = link.get_text(strip=True)
-                    if not title:
-                        continue
-
-                    # Walk up to parent li to find price
-                    parent = link.find_parent("li")
-                    price_text = "N/A"
-                    price_num = 99999
-                    if parent:
-                        text = parent.get_text(" ", strip=True)
-                        price_match = re.search(r'(\d[\d\.]*)[\s]*€', text)
-                        if price_match:
-                            price_num = int(price_match.group(1).replace(".", ""))
-                            price_text = f"{price_num} €/mes"
-
-                    if price_num > max_price:
-                        continue
-
-                    listings.append({
-                        "id": listing_id,
-                        "title": title,
-                        "price": price_text,
-                        "url": url_full,
-                    })
-
-                except Exception as e:
-                    print(f"Error parsing item: {e}", flush=True)
+            try:
+                listing_id = href.split("_")[-1].replace(".html", "")
+                url_full = "https://www.enalquiler.com" + href if href.startswith("/") else href
+                title = link.get_text(strip=True)
+                if not title:
                     continue
 
-            print(f"Page {page}: found {len(seen_on_page)} listings", flush=True)
+                parent = link.find_parent("li")
+                price_text = "N/A"
+                price_num = 99999
+                if parent:
+                    text = parent.get_text(" ", strip=True)
+                    price_match = re.search(r'(\d[\d\.]*)\s*€', text)
+                    if price_match:
+                        price_num = int(price_match.group(1).replace(".", ""))
+                        price_text = f"{price_num} €/mes"
 
-        except Exception as e:
-            print(f"Request error on page {page}: {e}", flush=True)
-            break
+                print(f"  Listing: {title[:50]} | {price_text}", flush=True)
+
+                if price_num > max_price:
+                    print(f"  Skipping (price {price_num} > {max_price})", flush=True)
+                    continue
+
+                listings.append({
+                    "id": listing_id,
+                    "title": title,
+                    "price": price_text,
+                    "url": url_full,
+                })
+
+            except Exception as e:
+                print(f"Error parsing item: {e}", flush=True)
+                continue
+
+        print(f"Found {len(seen_hrefs)} total listings, {len(listings)} under {max_price}€", flush=True)
+
+    except Exception as e:
+        print(f"Request error: {e}", flush=True)
 
     return listings
 
