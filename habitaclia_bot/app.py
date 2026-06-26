@@ -60,21 +60,64 @@ def scrape_listings(max_price):
     print(f"Fetching: {url}", flush=True)
 
     try:
+        time.sleep(random.uniform(2, 4))
         response = requests.get(url, headers=headers, timeout=20)
         response.encoding = 'latin-1'
         print(f"Status: {response.status_code}", flush=True)
 
-        soup = BeautifulSoup(response.text, "html.parser")
-        links = soup.find_all("a", href=re.compile(r"alquiler_piso_valencia"))
+        if response.status_code != 200:
+            print("Non-200 response", flush=True)
+            return listings
 
-        # Debug: print raw HTML of first listing's parent
-        if links:
-            first = links[0]
-            parent = first.find_parent("li")
-            if parent:
-                print(f"DEBUG parent li HTML:\n{parent}", flush=True)
-            else:
-                print(f"DEBUG no parent li, printing grandparent:\n{first.parent}", flush=True)
+        soup = BeautifulSoup(response.text, "html.parser")
+        cards = soup.find_all("li", class_="propertyCard")
+
+        for card in cards:
+            try:
+                # ID
+                listing_id = card.get("list-item", "")
+                if not listing_id:
+                    continue
+
+                # Title and URL
+                link_tag = card.select_one("a.propertyCard__description--title")
+                if not link_tag:
+                    continue
+                title = link_tag.get_text(strip=True)
+                url_full = link_tag.get("href", "")
+
+                # Price
+                price_tag = card.select_one("span.propertyCard__price--value")
+                price_text = price_tag.get_text(strip=True) if price_tag else "N/A"
+                price_num = int(re.sub(r'[^\d]', '', price_text)) if price_text != "N/A" else 99999
+
+                # Location
+                location_tag = card.select_one("div.propertyCard__location p")
+                location = location_tag.get_text(strip=True) if location_tag else "N/A"
+
+                # Details
+                details = [li.get_text(strip=True) for li in card.select("ul.propertyCard__details li")]
+                details_str = " | ".join(details) if details else "N/A"
+
+                print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
+
+                if price_num > max_price:
+                    continue
+
+                listings.append({
+                    "id": listing_id,
+                    "title": title,
+                    "price": f"{price_num} €/mes",
+                    "details": details_str,
+                    "location": location,
+                    "url": url_full,
+                })
+
+            except Exception as e:
+                print(f"Error parsing card: {e}", flush=True)
+                continue
+
+        print(f"Found {len(cards)} cards, {len(listings)} under {max_price}€", flush=True)
 
     except Exception as e:
         print(f"Request error: {e}", flush=True)
@@ -84,11 +127,27 @@ def scrape_listings(max_price):
 def main():
     global MQTT_USER, MQTT_PASS
     print("=== Enalquiler Bot Starting ===", flush=True)
+
     options = load_options()
+    print(f"Options loaded: {options}", flush=True)
+
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
     max_price = options.get("max_price", 1000)
-    scrape_listings(max_price)
+
+    seen_ids = load_seen_ids()
+    listings = scrape_listings(max_price)
+    print(f"Total listings found: {len(listings)}", flush=True)
+
+    new_listings = [l for l in listings if l["id"] not in seen_ids]
+    print(f"New listings: {len(new_listings)}", flush=True)
+
+    for listing in new_listings:
+        mqtt_publish("enalquiler/listing", listing)
+        seen_ids.add(listing["id"])
+
+    save_seen_ids(seen_ids)
+    print("Done.", flush=True)
 
 if __name__ == "__main__":
     while True:
