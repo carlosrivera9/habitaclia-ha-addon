@@ -2,8 +2,8 @@ import time
 import json
 import random
 import requests
-import paho.mqtt.publish as publish
 from bs4 import BeautifulSoup
+import paho.mqtt.publish as publish
 
 MQTT_HOST = "core-mosquitto"
 MQTT_PORT = 1883
@@ -45,52 +45,97 @@ def mqtt_publish(topic, payload):
     except Exception as e:
         print(f"MQTT error: {e}")
 
-def build_url(city_slug, max_price, pets):
-    base = f"https://www.idealista.com/alquiler-viviendas/{city_slug}/"
-    params = f"?precio-hasta={max_price}"
+def build_url(city_slug, max_price, pets, page=1):
+    base = f"https://www.habitaclia.com/alquiler-{city_slug}.htm"
+    params = f"?precio_hasta={max_price}"
     if pets:
-        params += "&mascota=1"
+        params += "&animales=1"
+    if page > 1:
+        params += f"&pagina={page}"
     return base + params
 
-def scrape_listings(url):
-    from playwright.sync_api import sync_playwright
-    content = ""
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
-        page = browser.new_page()
+def scrape_listings(city_slug, max_price, pets):
+    listings = []
+    headers = {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Referer": "https://www.habitaclia.com/",
+    }
+
+    for page in range(1, 4):
+        url = build_url(city_slug, max_price, pets, page)
+        print(f"Fetching: {url}", flush=True)
+
         try:
-            page.goto(url, timeout=30000)
-            page.wait_for_timeout(3000)
-            content = page.content()
-            print(content[:2000], flush=True)
+            time.sleep(random.uniform(2, 5))
+            response = requests.get(url, headers=headers, timeout=20)
+            print(f"Status: {response.status_code}", flush=True)
+
+            if response.status_code != 200:
+                print(f"Non-200 response, stopping pagination", flush=True)
+                break
+
+            soup = BeautifulSoup(response.text, "html.parser")
+            articles = soup.find_all("article")
+
+            if not articles:
+                print(f"No articles found on page {page}, stopping", flush=True)
+                break
+
+            for article in articles:
+                try:
+                    listing_id = article.get("data-id") or article.get("id", "")
+                    title_tag = article.find(["h2", "h3", "a"])
+                    title = title_tag.get_text(strip=True) if title_tag else "N/A"
+                    price_tag = article.find(class_=lambda c: c and "price" in c.lower())
+                    price = price_tag.get_text(strip=True) if price_tag else "N/A"
+                    link_tag = article.find("a", href=True)
+                    link = "https://www.habitaclia.com" + link_tag["href"] if link_tag and link_tag["href"].startswith("/") else (link_tag["href"] if link_tag else "N/A")
+                    location_tag = article.find(class_=lambda c: c and "location" in c.lower())
+                    location = location_tag.get_text(strip=True) if location_tag else "N/A"
+                    if listing_id:
+                        listings.append({
+                            "id": listing_id,
+                            "title": title,
+                            "price": price,
+                            "location": location,
+                            "url": link,
+                        })
+                except Exception as e:
+                    print(f"Error parsing article: {e}", flush=True)
+                    continue
+
+            print(f"Page {page}: found {len(articles)} articles", flush=True)
+
         except Exception as e:
-            print(f"Browser error: {e}", flush=True)
-        finally:
-            browser.close()
-    soup = BeautifulSoup(content, "html.parser")
-    articles = soup.find_all("article", class_="item")
+            print(f"Request error on page {page}: {e}", flush=True)
+            break
+
+    return listings
 
 def main():
     global MQTT_USER, MQTT_PASS
-    print("=== Idealista Bot Starting ===", flush=True)
+    print("=== Habitaclia Bot Starting ===", flush=True)
+
     options = load_options()
     print(f"Options loaded: {options}", flush=True)
+
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
-    city = options.get("city", "valencia-valencia")
+    city_slug = options.get("city", "valencia-en-valencia")
     max_price = options.get("max_price", 1000)
     pets = options.get("pets", True)
 
     seen_ids = load_seen_ids()
-    url = build_url(city, max_price, pets)
-    print(f"Scraping: {url}", flush=True)
-    listings = scrape_listings(url)
+    listings = scrape_listings(city_slug, max_price, pets)
+    print(f"Total listings found: {len(listings)}", flush=True)
 
     new_listings = [l for l in listings if l["id"] not in seen_ids]
     print(f"New listings: {len(new_listings)}", flush=True)
 
     for listing in new_listings:
-        mqtt_publish("idealista/listing", listing)
+        mqtt_publish("habitaclia/listing", listing)
         seen_ids.add(listing["id"])
 
     save_seen_ids(seen_ids)
@@ -102,4 +147,5 @@ if __name__ == "__main__":
             main()
         except Exception as e:
             print(f"Error: {e}", flush=True)
-        time.sleep(1800)  # 30 minutes
+        time.sleep(1800)
+EOF
