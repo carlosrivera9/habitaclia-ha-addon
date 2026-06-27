@@ -110,6 +110,7 @@ def generate_map(listings):
   <div id="map"></div>
   <script>
     var map = L.map('map').setView([39.548394, -0.398975], 12);
+    L.Icon.Default.imagePath = 'https://unpkg.com/leaflet@1.9.4/dist/images/';
     L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(map);
 
     L.circle([39.548394, -0.398975], {{
