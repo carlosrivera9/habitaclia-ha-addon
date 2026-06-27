@@ -1,5 +1,5 @@
 name: Habitaclia Apartment Bot
-version: "1.0.1"
+version: "1.0.2"
 slug: habitaclia_searcher
 description: Apartment finder for Valencia using Habitaclia
 arch:
@@ -20,4 +20,4 @@ schema:
   max_price: int
   pets: bool
 map:
-  - /config/www:/www
+  - config:rw
