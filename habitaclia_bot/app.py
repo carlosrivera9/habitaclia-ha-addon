@@ -119,9 +119,12 @@ def generate_map(listings):
       fillOpacity: 0.05
     }}).addTo(map);
 
-    L.marker([39.548394, -0.398975])
-      .addTo(map)
-      .bindPopup('📍 Colegio');
+    L.circleMarker([39.548394, -0.398975], {{
+      radius: 10,
+      color: 'green',
+      fillColor: 'green',
+      fillOpacity: 0.9
+    }}).addTo(map).bindPopup('Colegio');
 
     {markers_js}
   </script>
