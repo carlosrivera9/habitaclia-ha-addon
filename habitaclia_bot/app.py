@@ -12,6 +12,7 @@ MQTT_USER = None
 MQTT_PASS = None
 OPTIONS_FILE = "/data/options.json"
 SEEN_IDS_FILE = "/data/seen_ids.json"
+MAP_FILE = "/homeassistant/www/map.html"
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -57,12 +58,10 @@ def mqtt_publish(topic, payload):
 
 def geocode(location):
     try:
-        # Clean up location: take last 2 parts (district, city)
         parts = [p.strip() for p in location.split(",")]
-        # Use just the last 2 parts: district + Valencia
         query = ", ".join(parts[-2:]) if len(parts) >= 2 else location
         query = query + ", Spain"
-        
+
         url = "https://nominatim.openstreetmap.org/search"
         params = {
             "q": query,
@@ -79,6 +78,61 @@ def geocode(location):
     except Exception as e:
         print(f"Geocoding error for '{location}': {e}", flush=True)
     return None, None
+
+def generate_map(listings):
+    markers_js = ""
+    for l in listings:
+        if l.get("lat") and l.get("lon"):
+            title = l["title"].replace("'", "\\'")
+            price = l["price"].replace("'", "\\'")
+            location = l["location"].replace("'", "\\'")
+            details = l["details"].replace("'", "\\'")
+            url = l["url"]
+            markers_js += f"""
+    L.marker([{l["lat"]}, {l["lon"]}])
+      .addTo(map)
+      .bindPopup('<b>{price}</b><br>{title}<br>📍 {location}<br>{details}<br><a href="{url}" target="_blank">Ver anuncio →</a>');
+"""
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {{ margin: 0; padding: 0; }}
+    #map {{ height: 100vh; width: 100%; }}
+  </style>
+  <link rel="stylesheet" href="/local/leaflet.css"/>
+  <script src="/local/leaflet.js"></script>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    var map = L.map('map').setView([39.548394, -0.398975], 12);
+    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(map);
+
+    L.circle([39.548394, -0.398975], {{
+      radius: 10000,
+      color: 'blue',
+      fillColor: 'blue',
+      fillOpacity: 0.05
+    }}).addTo(map);
+
+    L.marker([39.548394, -0.398975])
+      .addTo(map)
+      .bindPopup('📍 Colegio');
+
+    {markers_js}
+  </script>
+</body>
+</html>"""
+
+    try:
+        with open(MAP_FILE, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"Map written to {MAP_FILE}", flush=True)
+    except Exception as e:
+        print(f"Error writing map: {e}", flush=True)
 
 def scrape_listings(max_price):
     listings = []
@@ -137,7 +191,6 @@ def scrape_listings(max_price):
 
                 print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
 
-                # Geocode the location
                 lat, lon = geocode(location)
                 print(f"  Coordinates: {lat}, {lon}", flush=True)
 
@@ -186,6 +239,8 @@ def main():
         seen_ids.add(listing["id"])
 
     mqtt_publish("enalquiler/summary", {"listings": listings, "count": len(listings)})
+
+    generate_map(listings)
 
     save_seen_ids(seen_ids)
     print("Done.", flush=True)
