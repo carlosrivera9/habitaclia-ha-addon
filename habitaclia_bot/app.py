@@ -55,6 +55,24 @@ def mqtt_publish(topic, payload):
     except Exception as e:
         print(f"MQTT error: {e}")
 
+def geocode(address):
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": address + ", Valencia, Spain",
+            "format": "json",
+            "limit": 1
+        }
+        headers = {"User-Agent": "enalquiler-ha-bot/1.0"}
+        time.sleep(1)  # Nominatim rate limit: 1 request/second
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        data = response.json()
+        if data:
+            return float(data[0]["lat"]), float(data[0]["lon"])
+    except Exception as e:
+        print(f"Geocoding error for '{address}': {e}", flush=True)
+    return None, None
+
 def scrape_listings(max_price):
     listings = []
     headers = {
@@ -102,16 +120,19 @@ def scrape_listings(max_price):
                 details = [li.get_text(strip=True) for li in card.select("ul.propertyCard__details li")]
                 details_str = " | ".join(details) if details else "N/A"
 
-                # Get description text for pets filtering
                 desc_tag = card.select_one("p.propertyCard__description--txt")
                 desc_text = desc_tag.get_text(strip=True).lower() if desc_tag else ""
+                full_text = (title + " " + desc_text).lower()
 
-                # Skip listings that explicitly say no pets
-                if any(kw in desc_text for kw in NO_PETS_KEYWORDS):
+                if any(kw in full_text for kw in NO_PETS_KEYWORDS):
                     print(f"  SKIP (no pets): {title[:50]}", flush=True)
                     continue
 
                 print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
+
+                # Geocode the location
+                lat, lon = geocode(location)
+                print(f"  Coordinates: {lat}, {lon}", flush=True)
 
                 listings.append({
                     "id": listing_id,
@@ -120,6 +141,8 @@ def scrape_listings(max_price):
                     "details": details_str,
                     "location": location,
                     "url": url_full,
+                    "lat": lat,
+                    "lon": lon,
                 })
 
             except Exception as e:
