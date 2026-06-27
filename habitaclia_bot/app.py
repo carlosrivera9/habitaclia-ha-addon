@@ -55,22 +55,29 @@ def mqtt_publish(topic, payload):
     except Exception as e:
         print(f"MQTT error: {e}")
 
-def geocode(address):
+def geocode(location):
     try:
+        # Clean up location: take last 2 parts (district, city)
+        parts = [p.strip() for p in location.split(",")]
+        # Use just the last 2 parts: district + Valencia
+        query = ", ".join(parts[-2:]) if len(parts) >= 2 else location
+        query = query + ", Spain"
+        
         url = "https://nominatim.openstreetmap.org/search"
         params = {
-            "q": address + ", Valencia, Spain",
+            "q": query,
             "format": "json",
             "limit": 1
         }
         headers = {"User-Agent": "enalquiler-ha-bot/1.0"}
-        time.sleep(1)  # Nominatim rate limit: 1 request/second
+        time.sleep(1)
         response = requests.get(url, params=params, headers=headers, timeout=10)
         data = response.json()
+        print(f"  Geocoding '{query}': {len(data)} results", flush=True)
         if data:
             return float(data[0]["lat"]), float(data[0]["lon"])
     except Exception as e:
-        print(f"Geocoding error for '{address}': {e}", flush=True)
+        print(f"Geocoding error for '{location}': {e}", flush=True)
     return None, None
 
 def scrape_listings(max_price):
