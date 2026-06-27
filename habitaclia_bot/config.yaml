@@ -19,3 +19,5 @@ schema:
   city: str
   max_price: int
   pets: bool
+map:
+  - /config/www:/www
