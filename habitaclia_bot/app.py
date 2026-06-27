@@ -53,9 +53,9 @@ def mqtt_publish(topic, payload):
             retain=True,
             auth={"username": MQTT_USER, "password": MQTT_PASS}
         )
-        print(f"MQTT published to {topic}")
+        print(f"MQTT published to {topic}", flush=True)
     except Exception as e:
-        print(f"MQTT error: {e}")
+        print(f"MQTT error: {e}", flush=True)
 
 def geocode(location):
     try:
@@ -73,7 +73,6 @@ def geocode(location):
         time.sleep(1)
         response = requests.get(url, params=params, headers=headers, timeout=10)
         data = response.json()
-        print(f"  Geocoding '{query}': {len(data)} results", flush=True)
         if data:
             return float(data[0]["lat"]), float(data[0]["lon"])
     except Exception as e:
@@ -128,11 +127,6 @@ def generate_map(listings):
   </script>
 </body>
 </html>"""
-
-    print(f"DEBUG: MAP_FILE={MAP_FILE}", flush=True)
-    print(f"DEBUG: /www exists={os.path.exists('/www')}", flush=True)
-    print(f"DEBUG: /www contents={os.listdir('/www') if os.path.exists('/www') else 'NOT FOUND'}", flush=True)
-    print(f"DEBUG: /config/www exists={os.path.exists('/config/www')}", flush=True)
 
     try:
         with open(MAP_FILE, "w", encoding="utf-8") as f:
@@ -193,13 +187,9 @@ def scrape_listings(max_price):
                 full_text = (title + " " + desc_text).lower()
 
                 if any(kw in full_text for kw in NO_PETS_KEYWORDS):
-                    print(f"  SKIP (no pets): {title[:50]}", flush=True)
                     continue
 
-                print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
-
                 lat, lon = geocode(location)
-                print(f"  Coordinates: {lat}, {lon}", flush=True)
 
                 listings.append({
                     "id": listing_id,
@@ -228,15 +218,12 @@ def main():
     print("=== Enalquiler Bot Starting ===", flush=True)
 
     options = load_options()
-    print(f"Options loaded: {options}", flush=True)
-
     MQTT_USER = options.get("mqtt_user", "idealista_bot")
     MQTT_PASS = options.get("mqtt_password", "idealista123")
     max_price = options.get("max_price", 1000)
 
     seen_ids = load_seen_ids()
     listings = scrape_listings(max_price)
-    print(f"Total listings found: {len(listings)}", flush=True)
 
     new_listings = [l for l in listings if l["id"] not in seen_ids]
     print(f"New listings: {len(new_listings)}", flush=True)
