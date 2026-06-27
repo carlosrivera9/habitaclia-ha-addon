@@ -18,6 +18,11 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
 ]
 
+NO_PETS_KEYWORDS = [
+    "no mascotas", "no se aceptan mascotas", "no animales",
+    "no se admiten mascotas", "sin mascotas", "no pets"
+]
+
 def load_options():
     with open(OPTIONS_FILE) as f:
         return json.load(f)
@@ -56,7 +61,7 @@ def scrape_listings(max_price):
         "Referer": "https://www.enalquiler.com/",
     }
 
-    url = "https://www.enalquiler.com/alquilar/alquiler-pisos-mascota-valencia_2_50692_48.html"
+    url = f"https://www.enalquiler.com/search?provincia=48&poblacion=50692&precio_max={max_price}"
     print(f"Fetching: {url}", flush=True)
 
     try:
@@ -94,10 +99,16 @@ def scrape_listings(max_price):
                 details = [li.get_text(strip=True) for li in card.select("ul.propertyCard__details li")]
                 details_str = " | ".join(details) if details else "N/A"
 
-                print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
+                # Get description text for pets filtering
+                desc_tag = card.select_one("p.propertyCard__description--txt")
+                desc_text = desc_tag.get_text(strip=True).lower() if desc_tag else ""
 
-                if price_num > max_price:
+                # Skip listings that explicitly say no pets
+                if any(kw in desc_text for kw in NO_PETS_KEYWORDS):
+                    print(f"  SKIP (no pets): {title[:50]}", flush=True)
                     continue
+
+                print(f"  {title[:50]} | {price_num}€ | {location}", flush=True)
 
                 listings.append({
                     "id": listing_id,
@@ -112,7 +123,7 @@ def scrape_listings(max_price):
                 print(f"Error parsing card: {e}", flush=True)
                 continue
 
-        print(f"Found {len(cards)} cards, {len(listings)} under {max_price}€", flush=True)
+        print(f"Found {len(cards)} cards, {len(listings)} after filtering", flush=True)
 
     except Exception as e:
         print(f"Request error: {e}", flush=True)
@@ -141,7 +152,6 @@ def main():
         mqtt_publish("enalquiler/listing", listing)
         seen_ids.add(listing["id"])
 
-    # Always publish full summary every run
     mqtt_publish("enalquiler/summary", {"listings": listings, "count": len(listings)})
 
     save_seen_ids(seen_ids)
