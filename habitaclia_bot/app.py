@@ -12,7 +12,7 @@ MQTT_USER = None
 MQTT_PASS = None
 OPTIONS_FILE = "/data/options.json"
 SEEN_IDS_FILE = "/data/seen_ids.json"
-MAP_FILE = "/homeassistant/www/map.html"
+MAP_FILE = "/config/www/map.html"
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
