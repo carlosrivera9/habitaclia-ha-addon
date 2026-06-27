@@ -64,7 +64,7 @@ def scrape_listings(max_price):
         "Referer": "https://www.enalquiler.com/",
     }
 
-    url = f"https://www.enalquiler.com/search?provincia=48&poblacion=50692&precio_max={max_price}"
+    url = f"https://www.enalquiler.com/search?provincia=48&poblacion=50692&precio_max={max_price - 1}"
     print(f"Fetching: {url}", flush=True)
 
     try:
