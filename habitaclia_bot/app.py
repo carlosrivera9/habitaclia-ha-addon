@@ -127,6 +127,11 @@ def generate_map(listings):
 </body>
 </html>"""
 
+import os
+print(f"DEBUG: MAP_FILE={MAP_FILE}, exists={os.path.exists(os.path.dirname(MAP_FILE))}", flush=True)
+print(f"DEBUG: /www contents={os.listdir('/www') if os.path.exists('/www') else 'NOT FOUND'}", flush=True)
+print(f"DEBUG: /config/www contents={os.listdir('/config/www') if os.path.exists('/config/www') else 'NOT FOUND'}", flush=True)
+
     try:
         with open(MAP_FILE, "w", encoding="utf-8") as f:
             f.write(html)
