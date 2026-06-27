@@ -20,7 +20,10 @@ USER_AGENTS = [
 
 NO_PETS_KEYWORDS = [
     "no mascotas", "no se aceptan mascotas", "no animales",
-    "no se admiten mascotas", "sin mascotas", "no pets"
+    "no se admiten mascotas", "no se admite mascotas",
+    "sin mascotas", "no pets", "no admite mascotas",
+    "no aceptamos mascotas", "no se permite mascotas",
+    "no se permiten mascotas", "no admitimos mascotas"
 ]
 
 def load_options():
